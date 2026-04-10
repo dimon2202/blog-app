@@ -16,15 +16,29 @@ const initialState: CommentsState = {
 
 export const fetchComments = createAsyncThunk(
   "comments/fetchByPostId",
-  async (postId: string) => {
-    return await fetchCommentsByPostId(postId);
+  async (postId: string, { rejectWithValue }) => {
+    try {
+      return await fetchCommentsByPostId(postId);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load comments";
+      console.error("[fetchComments]", message);
+      return rejectWithValue(message);
+    }
   },
 );
 
 export const addComment = createAsyncThunk(
   "comments/add",
-  async (data: CommentFormData) => {
-    return await addCommentToDB(data);
+  async (data: CommentFormData, { rejectWithValue }) => {
+    try {
+      return await addCommentToDB(data);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to add comment";
+      console.error("[addComment]", message);
+      return rejectWithValue(message);
+    }
   },
 );
 
@@ -35,6 +49,7 @@ const commentsSlice = createSlice({
     clearComments(state) {
       state.items = [];
       state.status = "idle";
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -49,12 +64,16 @@ const commentsSlice = createSlice({
       })
       .addCase(fetchComments.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message ?? "Error loading comments";
+        state.error = (action.payload as string) ?? "Failed to load comments";
       });
 
-    builder.addCase(addComment.fulfilled, (state, action) => {
-      state.items.push(action.payload);
-    });
+    builder
+      .addCase(addComment.fulfilled, (state, action) => {
+        state.items.push(action.payload);
+      })
+      .addCase(addComment.rejected, (state, action) => {
+        state.error = (action.payload as string) ?? "Failed to add comment";
+      });
   },
 });
 

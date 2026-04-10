@@ -69,10 +69,7 @@ export const updatePostInDB = async (
   id: string,
   data: Partial<PostFormData>,
 ): Promise<void> => {
-  await updateDoc(doc(db, "posts", id), {
-    ...data,
-    updatedAt: Date.now(),
-  });
+  await updateDoc(doc(db, "posts", id), { ...data, updatedAt: Date.now() });
 };
 
 export const deletePostFromDB = async (id: string): Promise<void> => {
@@ -84,17 +81,16 @@ export const commentsRef = collection(db, "comments");
 export const fetchCommentsByPostId = async (
   postId: string,
 ): Promise<Comment[]> => {
-  const q = query(
-    commentsRef,
-    where("postId", "==", postId),
-    orderBy("createdAt", "asc"),
-  );
+  const q = query(commentsRef, where("postId", "==", postId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({
+
+  const comments = snapshot.docs.map((d) => ({
     id: d.id,
     ...(d.data() as Omit<Comment, "id">),
     createdAt: toTimestamp(d.data().createdAt),
   }));
+
+  return comments.sort((a, b) => a.createdAt - b.createdAt);
 };
 
 export const addCommentToDB = async (
